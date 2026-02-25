@@ -190,9 +190,35 @@
         map.addLayer(layer_LapakGIS_Batas_Kecamatan_2024_1);
         var baseMaps = {};
         var layerControl = L.control.layers(baseMaps,{'LapakGIS_Batas_Kecamatan_2024<br /><table><tr><td style="text-align: center;"><img src="legend/LapakGIS_Batas_Kecamatan_2024_1_SangatRendah0.png" /></td><td>Sangat Rendah</td></tr><tr><td style="text-align: center;"><img src="legend/LapakGIS_Batas_Kecamatan_2024_1_Rendah1.png" /></td><td>Rendah</td></tr><tr><td style="text-align: center;"><img src="legend/LapakGIS_Batas_Kecamatan_2024_1_Sedang2.png" /></td><td>Sedang</td></tr><tr><td style="text-align: center;"><img src="legend/LapakGIS_Batas_Kecamatan_2024_1_Tinggi3.png" /></td><td>Tinggi</td></tr></table>': layer_LapakGIS_Batas_Kecamatan_2024_1,"OSM Standard": overlay_OSMStandard_0,},{collapsed:true}).addTo(map);
-        // Matikan hover expand/collapse bawaan Leaflet sepenuhnya
-        layerControl._expand  = function() {};
-        layerControl._collapse = function() {};
+
+        // Nonaktifkan hover Leaflet: hapus listener dengan referensi prototype yang tepat
+        (function(lc) {
+            var ctrl  = lc._container;
+            var proto = L.Control.Layers.prototype;
+
+            // Leaflet menyimpan referensi langsung ke proto.expand/collapse saat addTo()
+            // L.DomEvent.off harus menggunakan referensi yang SAMA PERSIS
+            L.DomEvent.off(ctrl, 'mouseenter', proto.expand,  lc);
+            L.DomEvent.off(ctrl, 'mouseleave', proto.collapse, lc);
+
+            // Clone button: hapus focus/click listener yang tersisa
+            var btn = ctrl.querySelector('.leaflet-control-layers-toggle');
+            if (btn) {
+                var newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    ctrl.classList.toggle('leaflet-control-layers-expanded');
+                });
+            }
+
+            // Tutup saat klik di luar control
+            document.addEventListener('click', function(e) {
+                if (!ctrl.contains(e.target)) {
+                    ctrl.classList.remove('leaflet-control-layers-expanded');
+                }
+            });
+        })(layerControl);
         setBounds();
         var i = 0;
         layer_LapakGIS_Batas_Kecamatan_2024_1.eachLayer(function(layer) {
@@ -288,29 +314,6 @@
             }
         });
 
-        // ── Toggle legenda: tombol selalu tampil, klik buka/tutup ──
-        setTimeout(function() {
-            var layerCtrl = document.querySelector('.leaflet-control-layers');
-            if (!layerCtrl) return;
-
-            var toggleBtn = layerCtrl.querySelector('.leaflet-control-layers-toggle');
-            if (!toggleBtn) return;
-
-            // Clone untuk hapus semua listener Leaflet bawaan
-            var newBtn = toggleBtn.cloneNode(true);
-            toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
-
-            // Toggle buka/tutup manual
-            newBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                layerCtrl.classList.toggle('leaflet-control-layers-expanded');
-            });
-
-            // Tutup saat klik di luar
-            document.getElementById('map').addEventListener('click', function() {
-                layerCtrl.classList.remove('leaflet-control-layers-expanded');
-            });
-        }, 300);
         </script>
     </body>
 </html>
